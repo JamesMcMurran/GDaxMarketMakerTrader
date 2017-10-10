@@ -11,15 +11,16 @@ interface LooseObject {
     [key: string]: any
 }
 
-var sellArray: LooseObject = {};
-var product:string = "LTC-USD";
-var nodeMailer = require('nodemailer');
-var buyId:string ;
-var buyPrice:string;
-var amountPerTrade:string = '1';
-var maxOpenSellOrders:number = 4;
-var minBuyValue:number = 10;
+let sellArray: LooseObject = {};
+let product:string = "LTC-USD";
+let nodeMailer = require('nodemailer');
+let buyId:string ;
+let buyPrice:string;
+let amountPerTrade:string = '1';
+let maxOpenSellOrders:number = 4;
+let minBuyValue:number = 10;
 console.log(process.env.GDAX_KEY);
+
 
 const options: GDAXFeedConfig = {
     logger: logger,
@@ -33,6 +34,9 @@ const options: GDAXFeedConfig = {
     apiUrl:GDAX_API_URL
 };
 
+/**
+ * This is the meat of the program and will start a feed to the user data and wait for orders to finalize.
+ */
 GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) => {
     feed.on('data', (msg: OrderDoneMessage) => {
         console.log(msg);
@@ -79,7 +83,6 @@ function removeTradeId(side:string,orderId:string){
             sendMessage('Skipped delete was not the requested buy order')
         }
     }else{
-
         console.log(sellArray);
         delete sellArray[orderId];
         console.log(sellArray);
@@ -87,7 +90,12 @@ function removeTradeId(side:string,orderId:string){
 
 }
 
-
+/**
+ * This is used to add a trade to the local storage to be later used.
+ * @param {string} orderId - ID of the order
+ * @param {string} price - Price the order was at
+ * @param {string} side - side the order was on
+ */
 function addTradeId(orderId:string, price:string, side:string){
     if(side == 'buy'){
         buyId=orderId;
@@ -105,9 +113,9 @@ function addTradeId(orderId:string, price:string, side:string){
  * @param {string} orderId
  */
 function buyOrderClosed(orderId:string){
-    var price:number = Number(buyPrice);
-    var profit:string = calcProfitInterval(buyPrice);
-    var buyDown:string = calcBuyDown(buyPrice);
+    let price:number = Number(buyPrice);
+    let profit:string = calcProfitInterval(buyPrice);
+    let buyDown:string = calcBuyDown(buyPrice);
     removeTradeId('buy',orderId);
     sendMessage(`I just bought ${amountPerTrade} at ${price}`);
     console.log(sellArray);
@@ -127,7 +135,7 @@ function buyOrderClosed(orderId:string){
  * @param {string} orderId
  */
 function sellOrderClosed(orderId:string){
-    var price = sellArray[orderId];
+    let price = sellArray[orderId];
     console.log(sellArray);
     if(buyId !='' ) {
         cancelOrder(buyId);
@@ -142,8 +150,8 @@ function sellOrderClosed(orderId:string){
  * @returns {number}
  */
 function calcBuyDown(price:string){
-    var re =(Number(price)-0.01).toString();
-    console.log(`Calc BuyDown price:${price} - 0.02 = ${re}`)
+    let re =(Number(price)-0.01).toString();
+    console.log(`Calc BuyDown price:${price} - 0.02 = ${re}`);
     return re;
 }
 
@@ -152,8 +160,8 @@ function calcBuyDown(price:string){
  * @returns {number}
  */
 function calcProfitInterval(price:string){
-    var re= (Number(price)+0.02).toString();
-   console.log(`Calc profit price:${price} + 0.02 = ${re}`)
+    let re= (Number(price)+0.02).toString();
+   console.log(`Calc profit price:${price} + 0.02 = ${re}`);
     return re;
 }
 
@@ -163,6 +171,8 @@ function calcProfitInterval(price:string){
  * @param {string} side   This is the side you want to submit the trade on.
  *                        Options: "buy" or "sell"
  * @param {string} amount This is the amount you want to
+ *
+ * @param {string} price This is the price you want to set the limit for
  */
 function submitLimit(side: string, amount: string ,price:string) {
     console.log("side:"+side+' Amount:'+amount+ ' Price:'+roundTwoPlaces(price));
@@ -196,7 +206,7 @@ function submitLimit(side: string, amount: string ,price:string) {
 function cancelOrder(id: string){
     gdaxAPI.cancelOrder(id).then(
      function () {
-         sendMessage(`I canceled an order ${id}`);
+         sendMessage(`I canceled order ${id}`);
      }
     ).catch(
         function () {
@@ -214,7 +224,7 @@ function sendMessage(Message:string) {
     console.log();
     console.log(Message);
     console.log();
-    var transporter = nodeMailer.createTransport({
+    let transporter = nodeMailer.createTransport({
         service: 'gmail',
         auth: {
             user: process.env.Email_User,
@@ -222,7 +232,7 @@ function sendMessage(Message:string) {
         }
     });
 
-    var mailOptions = {
+    let mailOptions = {
         from: process.env.Email_From,
         to: process.env.Email_To,
         subject: '',
@@ -238,8 +248,12 @@ function sendMessage(Message:string) {
     });
 }
 
-
+/**
+ * This is simply used to round numbers to two places.
+ * @param {string} num
+ * @returns {string}
+ */
 function roundTwoPlaces(num:string){
-    var numIs:number = Number(num);
+    let numIs:number = Number(num);
     return (Math.round(numIs*100)/100).toString();
 }

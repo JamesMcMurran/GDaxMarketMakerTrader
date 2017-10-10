@@ -7,9 +7,9 @@ const logger = GTT.utils.ConsoleLoggerFactory({ level: 'debug' });
 
 
 
-var product:string = "LTC-USD";
-var nodeMailer = require('nodemailer');
-var amountPerTrade:string = '1';
+let product:string = "LTC-USD";
+let nodeMailer = require('nodemailer');
+let amountPerTrade:string = '1';
 console.log(process.env.GDAX_KEY);
 
 const options: GDAXFeedConfig = {
@@ -51,7 +51,7 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
 
 /**
  * when a buy order is closed this is called. All the logic for what should happen on a buy closed is contained with in.
- * @param {string} orderId
+ * @param {string} price
  */
 function buyOrderClosed(price:string){
     sendMessage(`I just bought ${amountPerTrade} at ${price}`);}
@@ -73,7 +73,7 @@ function sendMessage(Message:string) {
     console.log();
     console.log(Message);
     console.log();
-    var transporter = nodeMailer.createTransport({
+    let transporter = nodeMailer.createTransport({
         service: 'gmail',
         auth: {
             user: process.env.Email_User,
@@ -81,7 +81,7 @@ function sendMessage(Message:string) {
         }
     });
 
-    var mailOptions = {
+    let mailOptions = {
         from: process.env.Email_From,
         to: process.env.Email_To,
         subject: '',
