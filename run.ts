@@ -19,7 +19,8 @@ let buyPrice:string;
 let amountPerTrade:string = '1';
 let maxOpenSellOrders:number = 4;
 let minBuyValue:number = 10;
-console.log(process.env.GDAX_KEY);
+//this is used to slow down the growth of the buy down. the higher the value the slower the exp growth of the buy down.
+let exp_growth_slowdown = 1;
 
 
 const options: GDAXFeedConfig = {
@@ -150,9 +151,16 @@ function sellOrderClosed(orderId:string){
  * @returns {number}
  */
 function calcBuyDown(price:string){
-    let re =(Number(price)-0.01).toString();
-    console.log(`Calc BuyDown price:${price} - 0.02 = ${re}`);
-    return re;
+    let numOfOpenOrders = Object.keys(sellArray).length;
+
+    //this will increase the interval the more orders are open and the longer the uptick age.
+    let re = Math.pow(numOfOpenOrders, (numOfOpenOrders / exp_growth_slowdown))/100 ; //* uptickAgeGrowth();
+    console.log(`Calc BuyDown Num of orders:${numOfOpenOrders} ^ (${numOfOpenOrders} / ${exp_growth_slowdown})/100 = ${re}`);
+    let buyPrice = (Number(price) - re).toString();
+    return roundTwoPlaces(buyPrice);
+
+    //let re =(Number(price)-0.01).toString();
+    //return re;
 }
 
 /**
