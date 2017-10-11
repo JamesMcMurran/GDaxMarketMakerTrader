@@ -4,6 +4,8 @@ import {GDAX_WS_FEED, GDAXFeedConfig, GDAXFeed} from "gdax-trading-toolkit/build
 import {GDAX_API_URL} from "gdax-trading-toolkit/build/src/exchanges/gdax/GDAXExchangeAPI";
 import {LiveOrder} from "gdax-trading-toolkit/build/src/lib";
 
+let Message = new Notify();
+
 const logger = GTT.utils.ConsoleLoggerFactory({ level: 'debug' });
 const gdaxAPI = GTT.Factories.GDAX.DefaultAPI(logger);
 
@@ -13,7 +15,6 @@ interface LooseObject {
 
 let sellArray: LooseObject = {};
 let product:string = "LTC-USD";
-let nodeMailer = require('nodemailer');
 let buyId:string ;
 let buyPrice:string;
 let amountPerTrade:string = '1';
@@ -63,7 +64,7 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
                     sellOrderClosed(msg.orderId);
                 }
             }else{
-                sendMessage(`non recognized message`);
+                Message.sendMessage(`non recognized message`);
             }
         }
     });
@@ -79,9 +80,9 @@ function removeTradeId(side:string,orderId:string){
         if(buyId == orderId) {
             buyId = null;
             buyPrice = null;
-            sendMessage(`Cleared Buy order`);
+            Message.sendMessage(`Cleared Buy order`);
         }else{
-            sendMessage('Skipped delete was not the requested buy order')
+            Message.sendMessage('Skipped delete was not the requested buy order')
         }
     }else{
         console.log(sellArray);
@@ -101,10 +102,10 @@ function addTradeId(orderId:string, price:string, side:string){
     if(side == 'buy'){
         buyId=orderId;
         buyPrice=price;
-        sendMessage(`A buy order ${orderId} was placed at ${price}`);
+        Message.sendMessage(`A buy order ${orderId} was placed at ${price}`);
     }else{
         sellArray[orderId] = price;
-        sendMessage(`A sell order ${orderId} was placed at ${price}`);
+        Message.sendMessage(`A sell order ${orderId} was placed at ${price}`);
         console.log(sellArray);
     }
 }
@@ -118,15 +119,15 @@ function buyOrderClosed(orderId:string){
     let profit:string = calcProfitInterval(buyPrice);
     let buyDown:string = calcBuyDown(buyPrice);
     removeTradeId('buy',orderId);
-    sendMessage(`I just bought ${amountPerTrade} at ${price}`);
+    Message.sendMessage(`I just bought ${amountPerTrade} at ${price}`);
     console.log(sellArray);
     if(Object.keys(sellArray).length<=maxOpenSellOrders){
         submitLimit('buy',  amountPerTrade ,roundTwoPlaces(buyDown));
         submitLimit('sell', amountPerTrade ,profit);
-        sendMessage(`Buy Limit placed for ${amountPerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)}`);
+        Message.sendMessage(`Buy Limit placed for ${amountPerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)}`);
     }else{
         submitLimit('sell', amountPerTrade ,profit);
-        sendMessage(`A sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
+        Message. sendMessage(`A sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
     }
 
 }
@@ -143,7 +144,7 @@ function sellOrderClosed(orderId:string){
     }
     removeTradeId('sell',orderId);
     submitLimit('buy',  amountPerTrade ,calcBuyDown(price));
-    sendMessage(`I just closed a Trade for profit`);
+    Message.sendMessage(`I just closed a Trade for profit`);
 }
 
 /**
@@ -189,7 +190,7 @@ function submitLimit(side: string, amount: string ,price:string) {
         const order: PlaceOrderMessage = {
             type: 'order',
             time: null,
-            productId: 'LTC-USD',
+            productId: product,
             orderType: 'limit',
             side: side,
             size: amount,
@@ -197,10 +198,10 @@ function submitLimit(side: string, amount: string ,price:string) {
         };
         gdaxAPI.placeOrder(order).then((result: LiveOrder) => {
             //pushMessage('Order executed', );
-            sendMessage(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status}`);
+            Message.sendMessage(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status}`);
         });
     }else{
-        sendMessage(`Um I just tried to do a crazy trade. Exiting`);
+        Message.sendMessage(`Um I just tried to do a crazy trade. Exiting`);
         //TODO:: EXIT THE PROGRAM HERE
     }
 
@@ -214,47 +215,17 @@ function submitLimit(side: string, amount: string ,price:string) {
 function cancelOrder(id: string){
     gdaxAPI.cancelOrder(id).then(
      function () {
-         sendMessage(`I canceled order ${id}`);
+         Message.sendMessage(`I canceled order ${id}`);
      }
     ).catch(
         function () {
-            sendMessage(`I tried to cancel an order and it failed. The Id i was given was ${id}`);
+            Message.sendMessage(`I tried to cancel an order and it failed. The Id i was given was ${id}`);
         }
     );
 
 }
 
-/**
- * this is used to send a txt via a Pre defined sender and receiver
- * @param {string} Message
- */
-function sendMessage(Message:string) {
-    console.log();
-    console.log(Message);
-    console.log();
-    let transporter = nodeMailer.createTransport({
-        service: 'gmail',
-        auth: {
-            user: process.env.Email_User,
-            pass: process.env.Email_Password
-        }
-    });
 
-    let mailOptions = {
-        from: process.env.Email_From,
-        to: process.env.Email_To,
-        subject: '',
-        text: Message
-    };
-
-    transporter.sendMail(mailOptions, function (error: object, info: object) {
-        if (error) {
-            console.log(error);
-        } else {
-            console.log('Email sent: ');
-        }
-    });
-}
 
 /**
  * This is simply used to round numbers to two places.
