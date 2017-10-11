@@ -4,7 +4,7 @@ let nodeMailer = require('nodemailer');
 /**
  * This class is used to abstract the sending of notices.
  */
-class Notify {
+export class Notify {
 
     constructor() {
     }

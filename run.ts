@@ -3,6 +3,7 @@ import * as GTT from 'gdax-trading-toolkit';
 import {GDAX_WS_FEED, GDAXFeedConfig, GDAXFeed} from "gdax-trading-toolkit/build/src/exchanges";
 import {GDAX_API_URL} from "gdax-trading-toolkit/build/src/exchanges/gdax/GDAXExchangeAPI";
 import {LiveOrder} from "gdax-trading-toolkit/build/src/lib";
+import {Notify} from './notify';
 
 let Message = new Notify();
 
@@ -18,10 +19,10 @@ let product:string = "LTC-USD";
 let buyId:string ;
 let buyPrice:string;
 let amountPerTrade:string = '1';
-let maxOpenSellOrders:number = 4;
+let maxOpenSellOrders:number = process.env.MAX_SELL_ORDERS;
 let minBuyValue:number = 10;
 //this is used to slow down the growth of the buy down. the higher the value the slower the exp growth of the buy down.
-let exp_growth_slowdown = 1;
+let exp_growth_slowdown = process.env.EXP_BUYDOWN_SLOWDOWN;
 
 
 const options: GDAXFeedConfig = {
