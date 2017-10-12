@@ -71,6 +71,17 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
     });
 });
 
+
+/**
+ * When starting get the open orders and add them to the local storage.
+ */
+gdaxAPI.loadAllOrders(product).then((orders) => {
+    orders.forEach((o: LiveOrder) => {
+        addTradeId(o.id, Number(o.price).toString(), o.side);
+    });
+});
+
+
 /**
  * this is called when a trade needs to be removed from the tracking array such as when it is closed
  * @param {string} side - this is the side you want to remove the ID from
