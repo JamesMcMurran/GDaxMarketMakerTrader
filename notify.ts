@@ -39,4 +39,8 @@ export class Notify {
             }
         });
     }
+
+    log(message:any){
+        console.log(message);
+    }
 }

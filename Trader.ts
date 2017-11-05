@@ -40,37 +40,46 @@ const options: GDAXFeedConfig = {
 /**
  * This is the meat of the program and will start a feed to the user data and wait for orders to finalize.
  */
+
 GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) => {
     feed.on('data', (msg: OrderDoneMessage) => {
-        console.log(msg);
-        //recoded the ID and price
-        if(msg.type == 'myOrderPlaced'){
-            console.log('Placed an order');
-            addTradeId(msg.orderId,msg.price,msg.side);
-        }
-        if(msg.type == 'tradeFinalized'){
-            console.log('Order Finalized');
-            //trade was Canceled
-            if(msg.reason =='canceled'){
-                removeTradeId('buy',msg.orderId);
-                removeTradeId('sell',msg.orderId);
-            }
-            //Trade was filled
-            if(msg.reason =="filled" && (msg.remainingSize == '0.00000000'|| msg.remainingSize == '0'))
-            {
-                //Was it buy or sell
-                if(msg.side =="buy"){
-                    buyOrderClosed(msg.orderId);
-                }else{
-                    sellOrderClosed(msg.orderId);
-                }
-            }else{
-                Message.sendMessage(`non recognized message`);
-            }
-        }
+        Message.log(msg);
+        prossMSG(msg);
     });
 });
 
+
+/**
+ * Possess the message that was sent.
+ * @param msg
+ */
+function prossMSG(msg:any){
+    //recoded the ID and price
+    if(msg.type == 'myOrderPlaced'){
+        Message.log('Placed an order');
+        addTradeId(msg.orderId,msg.price,msg.side);
+    }
+    if(msg.type == 'tradeFinalized'){
+        Message.log('Order Finalized');
+        //trade was Canceled
+        if(msg.reason =='canceled'){
+            removeTradeId('buy',msg.orderId);
+            removeTradeId('sell',msg.orderId);
+        }
+        //Trade was filled
+        if(msg.reason =="filled" && (msg.remainingSize == '0.00000000'|| msg.remainingSize == '0'))
+        {
+            //Was it buy or sell
+            if(msg.side =="buy"){
+                buyOrderClosed(msg.orderId,msg.origin.price);
+            }else{
+                sellOrderClosed(msg.orderId,msg.origin.price);
+            }
+        }else{
+            Message.log(`non recognized message`);
+        }
+    }
+}
 
 /**
  * When starting get the open orders and add them to the local storage.
@@ -92,14 +101,14 @@ function removeTradeId(side:string,orderId:string){
         if(buyId == orderId) {
             buyId = null;
             buyPrice = null;
-            Message.sendMessage(`Cleared Buy order`);
+            Message.log(`Cleared Buy order`);
         }else{
-            Message.sendMessage('Skipped delete was not the requested buy order')
+            Message.log('Skipped delete was not the requested buy order')
         }
     }else{
-        console.log(sellArray);
+        Message.log(sellArray);
         delete sellArray[orderId];
-        console.log(sellArray);
+        Message.log(sellArray);
     }
 
 }
@@ -114,11 +123,11 @@ function addTradeId(orderId:string, price:string, side:string){
     if(side == 'buy'){
         buyId=orderId;
         buyPrice=price;
-        Message.sendMessage(`A buy order ${orderId} was placed at ${price}`);
+        Message.log(`A buy order ${orderId} was placed at ${price}`);
     }else{
         sellArray[orderId] = price;
-        Message.sendMessage(`A sell order ${orderId} was placed at ${price}`);
-        console.log(sellArray);
+        Message.log(`A sell order ${orderId} was placed at ${price}`);
+        Message.log(sellArray);
     }
 }
 
@@ -126,20 +135,21 @@ function addTradeId(orderId:string, price:string, side:string){
  * when a buy order is closed this is called. All the logic for what should happen on a buy closed is contained with in.
  * @param {string} orderId
  */
-function buyOrderClosed(orderId:string){
-    let price:number = Number(buyPrice);
-    let profit:string = calcProfitInterval(buyPrice);
-    let buyDown:string = calcBuyDown(buyPrice);
+function buyOrderClosed(orderId:string,price:string){
+
+    let profit:string = calcProfitInterval(price);
+    let buyDown:string = calcBuyDown(price);
+
     removeTradeId('buy',orderId);
-    Message.sendMessage(`I just bought ${amountPerTrade} at ${price}`);
-    console.log(sellArray);
+    Message.log(`I just bought ${amountPerTrade} at ${price}`);
+    Message.log(sellArray);
     if(Object.keys(sellArray).length<=maxOpenSellOrders){
         submitLimit('buy',  amountPerTrade ,roundTwoPlaces(buyDown));
         submitLimit('sell', amountPerTrade ,profit);
-        Message.sendMessage(`Buy Limit placed for ${amountPerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)}`);
+        Message.log(`Buy Limit placed for ${amountPerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)}`);
     }else{
         submitLimit('sell', amountPerTrade ,profit);
-        Message. sendMessage(`A sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
+        Message.log(`A sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
     }
 
 }
@@ -148,15 +158,15 @@ function buyOrderClosed(orderId:string){
  * when a sell trade is closed this is called
  * @param {string} orderId
  */
-function sellOrderClosed(orderId:string){
-    let price = sellArray[orderId];
-    console.log(sellArray);
+function sellOrderClosed(orderId:string,priceIn:string){
+    let price = priceIn;
+    Message.log(sellArray);
     if(buyId !='' ) {
         cancelOrder(buyId);
     }
     removeTradeId('sell',orderId);
     submitLimit('buy',  amountPerTrade ,calcBuyDown(price));
-    Message.sendMessage(`I just closed a Trade for profit`);
+    Message.log(`I just closed a Trade for profit. I sold it for ${priceIn}`);
 }
 
 /**
@@ -164,12 +174,12 @@ function sellOrderClosed(orderId:string){
  * @returns {number}
  */
 function calcBuyDown(price:string){
-    let numOfOpenOrders = Object.keys(sellArray).length;
+    let numOfOpenOrders = Object.keys(sellArray).length +1;
 
     //this will increase the interval the more orders are open and the longer the uptick age.
     let re = Math.pow(numOfOpenOrders, (numOfOpenOrders / exp_growth_slowdown))/100 ; //* uptickAgeGrowth();
-    console.log(`Calc BuyDown Num of orders:${numOfOpenOrders} ^ (${numOfOpenOrders} / ${exp_growth_slowdown})/100 = ${re}`);
-    let buyPrice = (Number(price) - re).toString();
+    Message.log(`Calc BuyDown Num of orders:${numOfOpenOrders} ^ (${numOfOpenOrders} / ${exp_growth_slowdown})/100 = ${re}`);
+    let buyPrice = (Number(price) - 0.15 ).toString();
     return roundTwoPlaces(buyPrice);
 
     //let re =(Number(price)-0.01).toString();
@@ -177,12 +187,12 @@ function calcBuyDown(price:string){
 }
 
 /**
- * This is used to calc the profit interval
+ * This is used to calc the profit interval. You give it your price and it will return a price for profit.
  * @returns {number}
  */
 function calcProfitInterval(price:string){
-    let re= (Number(price)+0.02).toString();
-   console.log(`Calc profit price:${price} + 0.02 = ${re}`);
+    let re= (Number(price)+0.15).toString();
+    Message.log(`Calc profit price:${price} + 0.02 = ${re}`);
     return re;
 }
 
@@ -195,8 +205,8 @@ function calcProfitInterval(price:string){
  *
  * @param {string} price This is the price you want to set the limit for
  */
-function submitLimit(side: string, amount: string ,price:string) {
-    console.log("side:"+side+' Amount:'+amount+ ' Price:'+roundTwoPlaces(price));
+function submitLimit(side: string, amount: string ,price:string,tryNum:number=0) {
+    Message.log("side:"+side+' Amount:'+amount+ ' Price:'+roundTwoPlaces(price));
     //Sanity Check lets not buy or sell Bellow x value
     if(Number(roundTwoPlaces(price))>minBuyValue){
         const order: PlaceOrderMessage = {
@@ -210,10 +220,49 @@ function submitLimit(side: string, amount: string ,price:string) {
         };
         gdaxAPI.placeOrder(order).then((result: LiveOrder) => {
             //pushMessage('Order executed', );
-            Message.sendMessage(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status}`);
+            Message.log(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status} 
+            
+            -------Order-------
+            type:${order.type}
+            Time:${order.time}
+            ProductId:${order.productId}
+            OrderType:${order.orderType}
+            Side:${order.side}
+            Size:${order.size}
+            Price:${order.price}
+            
+            `);
+
+        }).catch(
+            function (message:any) {
+            Message.sendMessage(`I tried to place an order and it failed.  ${side} ${amount} ${product} for${price}. I got ${message}.
+            
+            -------Order-------
+            type:${order.type}
+            Time:${order.time}
+            ProductId:${order.productId}
+            OrderType:${order.orderType}
+            Side:${order.side}
+            Size:${order.size}
+            Price:${order.price}
+            `);
+            Message.log(order);
+
+            //So it faild let try spreeing the gap and running it agine.
+                if(tryNum==0)
+                {
+                    if(order.side=="buy"){
+                       var newPrice = (Number(order.price) - .03).toString();
+                    }else{
+                       var newPrice = (Number(order.price) + .02).toString();
+                    }
+                    submitLimit(order.side, amountPerTrade , newPrice ,1);
+                }
+
+
         });
     }else{
-        Message.sendMessage(`Um I just tried to do a crazy trade. Exiting`);
+        Message.sendMessage(`Um I just tried to do a crazy trade. Side:${side} Amount:${amount} ${product} for${price}.`);
         //TODO:: EXIT THE PROGRAM HERE
     }
 
@@ -225,13 +274,14 @@ function submitLimit(side: string, amount: string ,price:string) {
  * @param {string} id
  */
 function cancelOrder(id: string){
+    //TODO:: Make it check if a partial order has been filled and if not respond accordingly
     gdaxAPI.cancelOrder(id).then(
      function () {
-         Message.sendMessage(`I canceled order ${id}`);
+         Message.log(`I canceled order ${id}`);
      }
     ).catch(
         function () {
-            Message.sendMessage(`I tried to cancel an order and it failed. The Id i was given was ${id}`);
+            Message.log(`I tried to cancel an order and it failed. The Id i was given was ${id}`);
         }
     );
 

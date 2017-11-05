@@ -29,7 +29,7 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
         console.log(msg);
         //recoded the ID and price
         if(msg.type == 'myOrderPlaced'){
-            console.log('Placed an order');
+            sendMessage(`I just placed and order for ${amountPerTrade} at ${msg.price} on side ${msg.side}`);
         }
         if(msg.type == 'tradeFinalized'){
             console.log('Order Finalized');
@@ -61,29 +61,33 @@ function buyOrderClosed(price:string){
  * @param {string} orderId
  */
 function sellOrderClosed(orderId:string){
-    sendMessage(`I just closed a Trade for profit${orderId}`);
+    sendMessage(
+        `I just closed a Trade for profit${orderId}`,
+        process.env.Email_Profit_User,
+        process.env.Email_Profit_Password,
+        process.env.Email_Profit_From,
+        process.env.Email_Profit_To)
 }
-
 
 /**
  * this is used to send a txt via a Pre defined sender and receiver
  * @param {string} Message
  */
-function sendMessage(Message:string) {
+function sendMessage(Message:string,user:string=process.env.Email_User, pass:string=process.env.Email_Password, from:string=process.env.Email_From, to:string=process.env.Email_To) {
     console.log();
     console.log(Message);
     console.log();
     let transporter = nodeMailer.createTransport({
         service: 'gmail',
         auth: {
-            user: process.env.Email_User,
-            pass: process.env.Email_Password
+            user: user,
+            pass: pass
         }
     });
 
     let mailOptions = {
-        from: process.env.Email_From,
-        to: process.env.Email_To,
+        from: from,
+        to: to,
         subject: '',
         text: Message
     };
