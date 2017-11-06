@@ -1,7 +1,10 @@
 Trader.ts is used for running the maker bot and is the meat of the bot.
 Watcher.ts is used to Watch your account for trades and let you know when trades happen.
-Listen.py is used for dumping all the stream into a mongodb. this is useful if you would like to use market data to set your buy down and profit intervels
+Listen.py is used for dumping all the stream into a mongodb. This is useful if you would like to use market data to set your buy down and profit intervals
 
+
+Please keep in mind that this is a simple market maker and is used just to place and respond to the trades.
+I highly recommend finding a better way of setting the buydown and profit interval.
 
 
 to run you need to set env vars like so
