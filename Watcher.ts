@@ -43,6 +43,7 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
                     sellOrderClosed(msg.orderId);
                 }
             }else{
+                //TODO:: need to add canceled message tracking
                 sendMessage(`non recognized message`);
             }
         }

@@ -7,6 +7,8 @@ CC BY-SA
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+use command  ts-node ./run.ts to run ts scripts
+
 Trader.ts is used for running the maker bot and is the meat of the bot.
 Watcher.ts is used to Watch your account for trades and let you know when trades happen.
 Listen.py is used for dumping all the stream into a mongodb. This is useful if you would like to use market data to set your buy down and profit intervals
@@ -24,7 +26,7 @@ Trader.ts is running then you place a limit trade on the web interface and sit b
 
 Also please not that the Gdax folder is included as it is a fork of the original Gdax Python project as I needed to change how it handled a closed socket.
 
-```
+```bash
 #Gdax settings
 export GDAX_KEY="";
 export GDAX_SECRET="";

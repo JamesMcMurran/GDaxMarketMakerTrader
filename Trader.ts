@@ -40,20 +40,28 @@ const options: GDAXFeedConfig = {
 /**
  * This is the meat of the program and will start a feed to the user data and wait for orders to finalize.
  */
-
 GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) => {
     feed.on('data', (msg: OrderDoneMessage) => {
         Message.log(msg);
-        prossMSG(msg);
+        PossessMessage(msg);
     });
 });
 
 
 /**
- * Possess the message that was sent.
- * @param msg
+ * When starting get the open orders and add them to the local storage.
  */
-function prossMSG(msg:any){
+gdaxAPI.loadAllOrders(product).then((orders) => {
+    orders.forEach((o: LiveOrder) => {
+        addTradeId(o.id, Number(o.price).toString(), o.side);
+    });
+});
+
+/**
+ * Possess the message that was received.
+ * @param msg this is the message obj from the steam that is to be possessed
+ */
+function PossessMessage(msg:any){
     //recoded the ID and price
     if(msg.type == 'myOrderPlaced'){
         Message.log('Placed an order');
@@ -81,14 +89,6 @@ function prossMSG(msg:any){
     }
 }
 
-/**
- * When starting get the open orders and add them to the local storage.
- */
-gdaxAPI.loadAllOrders(product).then((orders) => {
-    orders.forEach((o: LiveOrder) => {
-        addTradeId(o.id, Number(o.price).toString(), o.side);
-    });
-});
 
 
 /**
@@ -179,7 +179,7 @@ function calcBuyDown(price:string){
     //this will increase the interval the more orders are open and the longer the uptick age.
     let re = Math.pow(numOfOpenOrders, (numOfOpenOrders / exp_growth_slowdown))/100 ; //* uptickAgeGrowth();
     Message.log(`Calc BuyDown Num of orders:${numOfOpenOrders} ^ (${numOfOpenOrders} / ${exp_growth_slowdown})/100 = ${re}`);
-    let buyPrice = (Number(price) - 0.15 ).toString();
+    let buyPrice = (Number(price) - 0.25 ).toString();
     return roundTwoPlaces(buyPrice);
 
     //let re =(Number(price)-0.01).toString();
@@ -191,7 +191,7 @@ function calcBuyDown(price:string){
  * @returns {number}
  */
 function calcProfitInterval(price:string){
-    let re= (Number(price)+0.15).toString();
+    let re= (Number(price)+0.25).toString();
     Message.log(`Calc profit price:${price} + 0.02 = ${re}`);
     return re;
 }
@@ -205,6 +205,9 @@ function calcProfitInterval(price:string){
  *
  * @param {string} price This is the price you want to set the limit for
  */
+
+//TODO:: Clean this function up it is far too long and messy.
+
 function submitLimit(side: string, amount: string ,price:string,tryNum:number=0) {
     Message.log("side:"+side+' Amount:'+amount+ ' Price:'+roundTwoPlaces(price));
     //Sanity Check lets not buy or sell Bellow x value
@@ -248,7 +251,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
             `);
             Message.log(order);
 
-            //So it faild let try spreeing the gap and running it agine.
+            //So it failed let try spreeing the gap and running it aging.
                 if(tryNum==0)
                 {
                     if(order.side=="buy"){
@@ -271,7 +274,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
 
 /**
  * This is used to cancel orders
- * @param {string} id
+ * @param {string} id this is the ID of the order you would like to cancel
  */
 function cancelOrder(id: string){
     //TODO:: Make it check if a partial order has been filled and if not respond accordingly
@@ -281,7 +284,7 @@ function cancelOrder(id: string){
      }
     ).catch(
         function () {
-            Message.log(`I tried to cancel an order and it failed. The Id i was given was ${id}`);
+            Message.log(`I tried to cancel an order and it failed. The Id I was given was ${id}`);
         }
     );
 
