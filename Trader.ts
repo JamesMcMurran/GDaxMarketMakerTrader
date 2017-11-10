@@ -21,8 +21,6 @@ let buyPrice:string;
 let amountPerTrade:string = '1';
 let maxOpenSellOrders:number = process.env.MAX_SELL_ORDERS;
 let minBuyValue:number = 10;
-//this is used to slow down the growth of the buy down. the higher the value the slower the exp growth of the buy down.
-let exp_growth_slowdown = process.env.EXP_BUYDOWN_SLOWDOWN;
 
 
 const options: GDAXFeedConfig = {
@@ -174,16 +172,9 @@ function sellOrderClosed(orderId:string,priceIn:string){
  * @returns {number}
  */
 function calcBuyDown(price:string){
-    let numOfOpenOrders = Object.keys(sellArray).length +1;
-
-    //this will increase the interval the more orders are open and the longer the uptick age.
-    let re = Math.pow(numOfOpenOrders, (numOfOpenOrders / exp_growth_slowdown))/100 ; //* uptickAgeGrowth();
-    Message.log(`Calc BuyDown Num of orders:${numOfOpenOrders} ^ (${numOfOpenOrders} / ${exp_growth_slowdown})/100 = ${re}`);
     let buyPrice = (Number(price) - 0.25 ).toString();
+    Message.log(`Calc Buydown price:${price} - 0.25 = ${buyPrice}`);
     return roundTwoPlaces(buyPrice);
-
-    //let re =(Number(price)-0.01).toString();
-    //return re;
 }
 
 /**
@@ -192,7 +183,7 @@ function calcBuyDown(price:string){
  */
 function calcProfitInterval(price:string){
     let re= (Number(price)+0.25).toString();
-    Message.log(`Calc profit price:${price} + 0.02 = ${re}`);
+    Message.log(`Calc profit price:${price} + 0.25 = ${re}`);
     return re;
 }
 
