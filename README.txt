@@ -7,6 +7,22 @@ CC BY-SA
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 
+If you don't have a Gdax account please consider using my link to get $10 free when you deposit $100 as I will also get $10.
+https://www.coinbase.com/join/5938cf1e9c87bc060c61c9cc
+
+Install
+
+Install nodeJS from the site not the repo the ubuntu one is old.
+
+# from npm
+npm install gdax
+npm install nodemailer
+
+# from GitHub
+npm install coinbase/gdax-node
+
+
+
 use command  ts-node ./run.ts to run ts scripts
 
 Trader.ts is used for running the maker bot and is the meat of the bot.
@@ -24,7 +40,6 @@ I highly recommend finding a better way of setting the buydown and profit interv
 To run you need to set env vars like so in the console be for running the scripts.
 Trader.ts is running then you place a limit trade on the web interface and sit back and let it run.
 
-Also please not that the Gdax folder is included as it is a fork of the original Gdax Python project as I needed to change how it handled a closed socket.
 
 ```bash
 #Gdax settings

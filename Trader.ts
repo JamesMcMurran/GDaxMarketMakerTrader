@@ -14,12 +14,20 @@ interface LooseObject {
     [key: string]: any
 }
 
+//this is used for tracking of the sells
 let sellArray: LooseObject = {};
 let product:string = "LTC-USD";
+
+//used for storing the buy id and price that is active
 let buyId:string ;
 let buyPrice:string;
+
+//how much are you wanting do per trade
 let amountPerTrade:string = '1';
+
 let maxOpenSellOrders:number = process.env.MAX_SELL_ORDERS;
+
+//Sanity check to make sure if we get a low number it will not be stupid and sell for 0.25
 let minBuyValue:number = 10;
 
 
@@ -193,7 +201,6 @@ function calcProfitInterval(price:string){
  * @param {string} side   This is the side you want to submit the trade on.
  *                        Options: "buy" or "sell"
  * @param {string} amount This is the amount you want to
- *
  * @param {string} price This is the price you want to set the limit for
  */
 
