@@ -10,7 +10,8 @@ const logger = GTT.utils.ConsoleLoggerFactory({ level: 'debug' });
 let product:string = "LTC-USD";
 let nodeMailer = require('nodemailer');
 let amountPerTrade:string = '1';
-console.log(process.env.GDAX_KEY);
+let sellsCounter= 0;
+let initMoney = 1070;
 
 const options: GDAXFeedConfig = {
     logger: logger,
@@ -63,11 +64,12 @@ function buyOrderClosed(price:string){
  */
 function sellOrderClosed(orderId:string){
     sendMessage(
-        `I just closed a Trade for profit${orderId}`,
+        `I just closed a Trade for profit. I have now made ${calcProfit()}. And the order ID was ${orderId}`,
         process.env.Email_Profit_User,
         process.env.Email_Profit_Password,
         process.env.Email_Profit_From,
         process.env.Email_Profit_To)
+    sellCountUp();
 }
 
 /**
@@ -100,4 +102,50 @@ function sendMessage(Message:string,user:string=process.env.Email_User, pass:str
             console.log('Email sent: ');
         }
     });
+}
+
+
+/**
+ * Calculates the profit that you have made so far
+ * TODO::update once variable BD and PI are running. And get rid of the placeholder x log
+ * @returns {number}
+ */
+function calcProfit(){
+    let x =  ifSellsClosed() + openBuysTotalMoney() + freeMoney() - initMoney;
+    console.log(x);
+    return sellsCounter*.25;
+}
+
+/**
+ * Tracks the amount of sells we have made
+ */
+function sellCountUp(){
+    sellsCounter++;
+}
+
+/**
+ * This is amount of money that would be in the account if all sells were to close.
+ * @returns {number}
+ * TODO:: Get the real numbs. I am still thinking about the logic of this
+ */
+function ifSellsClosed(){
+    return 300;
+}
+
+/**
+ * This is the amount of money that is take by open orders and if we canceled them we would have this much.
+ * @returns {number}
+ * TODO:: Get the real numbs. I am still thinking about the logic of this
+ */
+function openBuysTotalMoney(){
+    return 250;
+}
+
+/**
+ * This is the amount of money that is available to be used .
+ * @returns {number}
+ * TODO:: Get the real numbs. I am still thinking about the logic of this
+ */
+function freeMoney(){
+    return 250;
 }
