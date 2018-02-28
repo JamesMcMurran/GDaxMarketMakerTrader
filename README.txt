@@ -65,4 +65,10 @@ export Email_Profit_To="";
 export MAX_SELL_ORDERS=3;
 #this was for an experiment where the more open sells it had the bigger the buy down would get
 export EXP_BUYDOWN_SLOWDOWN=1;
+
+
+export tradeSize=0.01;
+export buyDownValue=.05;
+export profitValue=.05;
+
 ```

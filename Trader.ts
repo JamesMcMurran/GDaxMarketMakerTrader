@@ -23,7 +23,7 @@ let buyId:string ;
 let buyPrice:string;
 
 //how much are you wanting do per trade
-let amountPerTrade:string = '1';
+let amountPerTrade:string = process.env.tradeSize;
 
 let maxOpenSellOrders:number = process.env.MAX_SELL_ORDERS;
 
@@ -59,9 +59,14 @@ GTT.Factories.GDAX.getSubscribedFeeds(options, [product]).then((feed: GDAXFeed) 
  */
 gdaxAPI.loadAllOrders(product).then((orders) => {
     orders.forEach((o: LiveOrder) => {
-        addTradeId(o.id, Number(o.price).toString(), o.side);
+        if(o.extra.price  != null){
+            addTradeId(o.id, Number(o.extra.price).toString(), o.side);
+        }else {
+            addTradeId(o.id, Number(o.price).toString(), o.side);
+        }
     });
 });
+
 
 /**
  * Possess the message that was received.
@@ -167,9 +172,7 @@ function buyOrderClosed(orderId:string,price:string){
 function sellOrderClosed(orderId:string,priceIn:string){
     let price = priceIn;
     Message.log(sellArray);
-    if(buyId !='' ) {
-        cancelOrder(buyId);
-    }
+    cancelAllBuysButHighest();
     removeTradeId('sell',orderId);
     submitLimit('buy',  amountPerTrade ,calcBuyDown(price));
     Message.log(`I just closed a Trade for profit. I sold it for ${priceIn}`);
@@ -180,8 +183,8 @@ function sellOrderClosed(orderId:string,priceIn:string){
  * @returns {number}
  */
 function calcBuyDown(price:string){
-    let buyPrice = (Number(price) - 0.25 ).toString();
-    Message.log(`Calc Buydown price:${price} - 0.25 = ${buyPrice}`);
+    let buyPrice = (Number(price) - parseFloat(process.env.buyDownValue) ).toString();
+    Message.log(`Calc Buydown price:${price} + ${process.env.buyDownValue} = ${buyPrice}`);
     return roundTwoPlaces(buyPrice);
 }
 
@@ -190,8 +193,8 @@ function calcBuyDown(price:string){
  * @returns {number}
  */
 function calcProfitInterval(price:string){
-    let re= (Number(price)+0.25).toString();
-    Message.log(`Calc profit price:${price} + 0.25 = ${re}`);
+    let re= (Number(price)+parseFloat(process.env.profitValue)).toString();
+    Message.log(`Calc profit price:${price} + ${process.env.profitValue} = ${re}`);
     return re;
 }
 
@@ -205,6 +208,7 @@ function calcProfitInterval(price:string){
  */
 
 //TODO:: Clean this function up it is far too long and messy.
+//TODO:: Handel a limit of 5/10 messages per second
 
 function submitLimit(side: string, amount: string ,price:string,tryNum:number=0) {
     Message.log("side:"+side+' Amount:'+amount+ ' Price:'+roundTwoPlaces(price));
@@ -215,6 +219,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
             time: null,
             productId: product,
             orderType: 'limit',
+            postOnly:true,
             side: side,
             size: amount,
             price:roundTwoPlaces(price)
@@ -288,6 +293,35 @@ function cancelOrder(id: string){
 
 }
 
+/**
+ * Calling this will cancel all orders except the highest one.
+ */
+function cancelAllBuysButHighest(){
+
+    gdaxAPI.loadAllOrders(product).then((orders) => {
+        let maxPrice:number = 0;
+        let maxID:string='';
+        //console.log(maxPrice);
+        orders.forEach((o: LiveOrder) => {
+            if(o.side=="buy"){
+
+                //if price is lower than last round kill it
+                if((Number(o.extra.price) < maxPrice) && maxPrice !=0) {
+                    cancelOrder(o.id);
+                }else{
+
+                    //Kill the last max order.
+                    if(maxID != ''){
+                        cancelOrder(maxID);
+                    }
+                    maxPrice = Number(o.extra.price);
+                    maxID = o.id;
+                }
+            }
+
+        });
+    });
+}
 
 
 /**
