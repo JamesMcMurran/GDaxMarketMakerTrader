@@ -10,6 +10,9 @@ let Message = new Notify();
 const logger = GTT.utils.ConsoleLoggerFactory({ level: 'debug' });
 const gdaxAPI = GTT.Factories.GDAX.DefaultAPI(logger);
 
+
+
+//used to make a multidimensional array
 interface LooseObject {
     [key: string]: any
 }
@@ -19,8 +22,7 @@ let sellArray: LooseObject = {};
 let product:string = "LTC-USD";
 
 //used for storing the buy id and price that is active
-let buyId:string ;
-let buyPrice:string;
+let buys:Array<any>=[];
 
 //how much are you wanting do per trade
 let amountPerTrade:string = process.env.tradeSize;
@@ -68,6 +70,8 @@ gdaxAPI.loadAllOrders(product).then((orders) => {
 });
 
 
+
+
 /**
  * Possess the message that was received.
  * @param msg this is the message obj from the steam that is to be possessed
@@ -109,17 +113,9 @@ function PossessMessage(msg:any){
  */
 function removeTradeId(side:string,orderId:string){
     if(side == 'buy'){
-        if(buyId == orderId) {
-            buyId = null;
-            buyPrice = null;
-            Message.log(`Cleared Buy order`);
-        }else{
-            Message.log('Skipped delete was not the requested buy order')
-        }
+
     }else{
-        Message.log(sellArray);
         delete sellArray[orderId];
-        Message.log(sellArray);
     }
 
 }
@@ -132,8 +128,7 @@ function removeTradeId(side:string,orderId:string){
  */
 function addTradeId(orderId:string, price:string, side:string){
     if(side == 'buy'){
-        buyId=orderId;
-        buyPrice=price;
+        buys.push(orderId);
         Message.log(`A buy order ${orderId} was placed at ${price}`);
     }else{
         sellArray[orderId] = price;
@@ -172,7 +167,7 @@ function buyOrderClosed(orderId:string,price:string){
 function sellOrderClosed(orderId:string,priceIn:string){
     let price = priceIn;
     Message.log(sellArray);
-    cancelAllBuysButHighest();
+    cancelAllBuysButNewest();
     removeTradeId('sell',orderId);
     submitLimit('buy',  amountPerTrade ,calcBuyDown(price));
     Message.log(`I just closed a Trade for profit. I sold it for ${priceIn}`);
@@ -294,33 +289,14 @@ function cancelOrder(id: string){
 }
 
 /**
- * Calling this will cancel all orders except the highest one.
+ * Calling this will cancel all orders except the newest one.
+ * in theory this will cancel all but the highest
  */
-function cancelAllBuysButHighest(){
-
-    gdaxAPI.loadAllOrders(product).then((orders) => {
-        let maxPrice:number = 0;
-        let maxID:string='';
-        //console.log(maxPrice);
-        orders.forEach((o: LiveOrder) => {
-            if(o.side=="buy"){
-
-                //if price is lower than last round kill it
-                if((Number(o.extra.price) < maxPrice) && maxPrice !=0) {
-                    cancelOrder(o.id);
-                }else{
-
-                    //Kill the last max order.
-                    if(maxID != ''){
-                        cancelOrder(maxID);
-                    }
-                    maxPrice = Number(o.extra.price);
-                    maxID = o.id;
-                }
-            }
-
-        });
-    });
+function cancelAllBuysButNewest(){
+    let len = buys.length - 1;
+    for(let i = 0; i < len; i++){
+        cancelOrder(buys.pop());
+    }
 }
 
 
