@@ -17,16 +17,16 @@ interface LooseObject {
     [key: string]: any
 }
 
-//this is used for tracking of the sells
-let sellArray: LooseObject = {};
+
 let product:string = "LTC-USD";
 
-//used for storing the buy id and price that is active
-let buys:Array<any>=[];
+let sellOrders: LooseObject = {};
 
-//how much are you wanting do per trade
-let amountPerTrade:string = process.env.tradeSize;
+let buyID:string="none";
+let buyPrice:number =0;
 
+
+let sizePerTrade:string = process.env.tradeSize;
 let maxOpenSellOrders:number = process.env.MAX_SELL_ORDERS;
 
 //Sanity check to make sure if we get a low number it will not be stupid and sell for 0.25
@@ -115,7 +115,7 @@ function removeTradeId(side:string,orderId:string){
     if(side == 'buy'){
 
     }else{
-        delete sellArray[orderId];
+        delete sellOrders[orderId];
     }
 
 }
@@ -128,12 +128,12 @@ function removeTradeId(side:string,orderId:string){
  */
 function addTradeId(orderId:string, price:string, side:string){
     if(side == 'buy'){
-        buys.push(orderId);
+        testNewBuyOrder(Number(price),orderId);
         Message.log(`A buy order ${orderId} was placed at ${price}`);
     }else{
-        sellArray[orderId] = price;
-        Message.log(`A sell order ${orderId} was placed at ${price}`);
-        Message.log(sellArray);
+        sellOrders[orderId] = price;
+        //Message.log(`A sell order ${orderId} was placed at ${price}`);
+        //Message.log(sellOrders);
     }
 }
 
@@ -147,15 +147,15 @@ function buyOrderClosed(orderId:string,price:string){
     let buyDown:string = calcBuyDown(price);
 
     removeTradeId('buy',orderId);
-    Message.log(`I just bought ${amountPerTrade} at ${price}`);
-    Message.log(sellArray);
-    if(Object.keys(sellArray).length<=maxOpenSellOrders){
-        submitLimit('buy',  amountPerTrade ,roundTwoPlaces(buyDown));
-        submitLimit('sell', amountPerTrade ,profit);
-        Message.log(`Buy Limit placed for ${amountPerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)}`);
+    Message.log(`I just bought ${sizePerTrade} at ${price}`);
+    Message.log(sellOrders);
+    if(Object.keys(sellOrders).length<=maxOpenSellOrders){
+        submitLimit('buy',  sizePerTrade ,roundTwoPlaces(buyDown));
+        submitLimit('sell', sizePerTrade ,profit);
+        Message.log(`Buy Limit placed for ${sizePerTrade} at ${roundTwoPlaces(buyDown)} and a sell limit for ${sizePerTrade} at ${roundTwoPlaces(profit)}`);
     }else{
-        submitLimit('sell', amountPerTrade ,profit);
-        Message.log(`A sell limit for ${amountPerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
+        submitLimit('sell', sizePerTrade ,profit);
+        Message.log(`A sell limit for ${sizePerTrade} at ${roundTwoPlaces(profit)} max sells has been reached.`);
     }
 
 }
@@ -166,10 +166,8 @@ function buyOrderClosed(orderId:string,price:string){
  */
 function sellOrderClosed(orderId:string,priceIn:string){
     let price = priceIn;
-    Message.log(sellArray);
-    cancelAllBuysButNewest();
     removeTradeId('sell',orderId);
-    submitLimit('buy',  amountPerTrade ,calcBuyDown(price));
+    submitLimit('buy',  sizePerTrade ,calcBuyDown(price));
     Message.log(`I just closed a Trade for profit. I sold it for ${priceIn}`);
 }
 
@@ -221,7 +219,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
         };
         gdaxAPI.placeOrder(order).then((result: LiveOrder) => {
             //pushMessage('Order executed', );
-            Message.log(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status} 
+           /* Message.log(`Order to ${side} ${amount} 'LTC-USD' for${price}. Result: ${result.status}
             
             -------Order-------
             type:${order.type}
@@ -232,7 +230,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
             Size:${order.size}
             Price:${order.price}
             
-            `);
+            `);*/
 
         }).catch(
             function (message:any) {
@@ -257,7 +255,7 @@ function submitLimit(side: string, amount: string ,price:string,tryNum:number=0)
                     }else{
                        var newPrice = (Number(order.price) + .02).toString();
                     }
-                    submitLimit(order.side, amountPerTrade , newPrice ,1);
+                    submitLimit(order.side, sizePerTrade , newPrice ,1);
                 }
 
 
@@ -288,16 +286,24 @@ function cancelOrder(id: string){
 
 }
 
+
 /**
- * Calling this will cancel all orders except the newest one.
- * in theory this will cancel all but the highest
+ * This is used to test new buy orders as they come in. It will check if the new orders price is grater than the last one.
+ * @param {number} newPrice
+ * @param {string} newID
  */
-function cancelAllBuysButNewest(){
-    let len = buys.length - 1;
-    for(let i = 0; i < len; i++){
-        cancelOrder(buys.pop());
+function testNewBuyOrder(newPrice:number,newID:string){
+    if(buyPrice<newPrice){
+        if(buyID!="none"){
+            cancelOrder(buyID);
+        }
+        buyID = newID;
+        buyPrice = newPrice;
+    }else{
+        cancelOrder(newID);
     }
 }
+
 
 
 /**
