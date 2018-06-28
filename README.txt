@@ -1,5 +1,8 @@
 Copyright 2017 James McMurran
 
+This is not a finished product so please be carefull. I have stoped developing on this due to the crash once LiteCoin hits over $200 I will start this back up as I have most of my money wraped up at that price point.
+
+
 Licence:Creative Commons  Attribution-ShareAlike
 CC BY-SA
 
